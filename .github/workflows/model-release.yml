@@ -1,0 +1,53 @@
+name: model-release
+
+on:
+  push:
+    tags: ["model-v*"]
+
+permissions:
+  contents: write
+  id-token: write   # keyless cosign signing
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      MODEL_NAME: amalia
+      AI_ACT_SYSTEM_ID: AIS-001-amalia
+      RISK_CLASS: high
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Data governance gate (Art. 10)
+        run: ./ci/check-dataset.sh examples/lineage-manifest.yaml "$RISK_CLASS"
+
+      - name: Generate model card (Art. 11)
+        run: ./ci/generate-model-card.sh "$MODEL_NAME" "${GITHUB_REF_NAME}"
+
+      - name: Release gate (Art. 11/12/15/72)
+        run: ./ci/check-release.sh "${GITHUB_REF_NAME}"
+
+      - name: Sign image (Art. 15)
+        run: |
+          cosign sign --yes \
+            "registry.itlusions.nl/models/${MODEL_NAME}:${GITHUB_REF_NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-act-evidence-${{ github.ref_name }}
+          path: |
+            build/model-card-*.md
+            build/release-input.json
+          retention-days: 90
+
+  deploy-prod:
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      # Protection rule in GitHub settings vereist menselijke reviewer (Art. 14).
+      name: ai-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply deployment
+        run: kubectl apply -f deploy/

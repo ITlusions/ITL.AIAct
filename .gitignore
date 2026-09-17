@@ -1,0 +1,11 @@
+build/
+*.tmp
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Nooit committen: signing keys en evidence met persoonsgegevens
+cosign.key
+*.pem
+!**/README*.pem
+evidence/

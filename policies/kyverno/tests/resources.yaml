@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amalia-inference-compliant
+  namespace: ai-prod
+  labels:
+    workload-type: ai-inference
+    ai-act.risk-class: high
+    ai-act.system-id: AIS-001-amalia
+  annotations:
+    ai-act.approved-by: compliance@itlusions.nl
+    ai-act.approval-ticket: CHG-2026-0412
+    ai-act.kill-switch-endpoint: https://amalia.itlusions.nl/admin/halt
+    ai-act.disclosure-url: https://itlusions.nl/ai-transparency/amalia
+    ai-act.human-interaction: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: amalia-inference }
+  template:
+    metadata:
+      labels:
+        app: amalia-inference
+        workload-type: ai-inference
+        ai-act.risk-class: high
+        ai-act.system-id: AIS-001-amalia
+      annotations:
+        spiffe.io/spiffe-id: spiffe://itlusions.nl/ai/amalia/inference
+    spec:
+      nodeSelector:
+        node-attestation: tpm-verified
+      containers:
+        - name: inference
+          image: registry.itlusions.nl/models/amalia:v2.3.1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: braincell-inference-unlabeled
+  namespace: ai-prod
+  labels:
+    workload-type: ai-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: braincell-inference }
+  template:
+    metadata:
+      labels:
+        app: braincell-inference
+        workload-type: ai-inference
+    spec:
+      containers:
+        - name: inference
+          image: registry.itlusions.nl/models/braincell:v0.9.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forbidden-scoring-system
+  namespace: ai-prod
+  labels:
+    workload-type: ai-inference
+    ai-act.risk-class: unacceptable
+    ai-act.system-id: AIS-999-test
+  annotations:
+    ai-act.approved-by: compliance@itlusions.nl
+    ai-act.approval-ticket: CHG-2026-0999
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: scoring }
+  template:
+    metadata:
+      labels:
+        app: scoring
+        workload-type: ai-inference
+        ai-act.risk-class: unacceptable
+    spec:
+      containers:
+        - name: inference
+          image: registry.itlusions.nl/models/scoring:v1

@@ -1,0 +1,47 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-spiffe-attestation
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 15"
+    ai-act.itlusions.nl/control: "C-05b"
+    policies.kyverno.io/description: >-
+      Elke AI-workload krijgt een werkidentiteit via SPIFFE/SPIRE, zodat
+      inferentieverkeer mTLS-geauthenticeerd is en audit events herleidbaar
+      zijn tot een geattesteerde workload op een Talos/TPM-node.
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-spiffe-id
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      validate:
+        message: >-
+          AI-pod moet annotatie 'spiffe.io/spiffe-id' hebben binnen het
+          trust domain spiffe://itlusions.nl/ai/.
+        pattern:
+          metadata:
+            annotations:
+              spiffe.io/spiffe-id: "spiffe://itlusions.nl/ai/*"
+
+    - name: require-attested-node
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              selector:
+                matchLabels:
+                  ai-act.risk-class: high
+      validate:
+        message: >-
+          Hoogrisico AI-workload mag alleen draaien op een TPM-geattesteerde
+          Talos-node (nodeSelector node-attestation=tpm-verified).
+        pattern:
+          spec:
+            nodeSelector:
+              node-attestation: tpm-verified

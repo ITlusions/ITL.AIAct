@@ -1,0 +1,50 @@
+name: ai-act-compliance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    name: OPA + Kyverno policy tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OPA
+        run: |
+          curl -sSL -o /usr/local/bin/opa \
+            https://openpolicyagent.org/downloads/v0.68.0/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+
+      - name: Rego unit tests
+        run: opa test policies/opa -v
+
+      - name: Rego lint (strict)
+        run: opa check --strict policies/opa
+
+      - name: Install Kyverno CLI
+        run: |
+          curl -sSL https://github.com/kyverno/kyverno/releases/download/v1.13.2/kyverno-cli_v1.13.2_linux_x86_64.tar.gz \
+            | tar -xz -C /usr/local/bin kyverno
+
+      - name: Kyverno policy tests
+        run: kyverno test policies/kyverno/tests
+
+  registry-gate:
+    name: AI-systeemregister gate
+    runs-on: ubuntu-latest
+    needs: policy-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OPA
+        run: |
+          curl -sSL -o /usr/local/bin/opa \
+            https://openpolicyagent.org/downloads/v0.68.0/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+      - name: Elke AI-workload staat in het register
+        run: ./ci/check-registry.sh

@@ -1,0 +1,18 @@
+# Lineage-manifest (Art. 10). Hoort naast de dataset in Git, gesigneerd met cosign:
+#   cosign sign-blob --key cosign.key examples/lineage-manifest.yaml
+dataset: customer-support-tickets-v3
+source: internal-crm-export
+license: internal-use-only
+collected_at: 2026-03-01
+approved_by: dpo@itlusions.nl
+contains_personal_data: true
+pii_scrubbed: true
+dpia_reference: DPIA-2026-07
+bias_assessment: reports/bias-assessment-2026-03.md
+representativiteit: >-
+  Steekproef over 24 maanden, alle klantsegmenten; NL/EN. Bekende
+  onderrepresentatie van enterprise-tickets (<5%), zie LIMITATIONS.md.
+split:
+  train: 0.7
+  validation: 0.15
+  test: 0.15

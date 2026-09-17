@@ -1,0 +1,50 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-human-approval-prod
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 14"
+    ai-act.itlusions.nl/control: "C-04"
+    policies.kyverno.io/description: >-
+      Menselijk toezicht: een productie-deployment van een hoogrisicosysteem
+      vereist een aantoonbaar menselijke goedkeuring met traceerbaar ticket.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-approval-annotation
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              namespaces: [ai-prod]
+      validate:
+        message: >-
+          Deployment naar ai-prod vereist annotaties 'ai-act.approved-by'
+          (mens, geen service-account) en 'ai-act.approval-ticket'.
+        pattern:
+          metadata:
+            annotations:
+              ai-act.approved-by: "?*@itlusions.nl"
+              ai-act.approval-ticket: "?*"
+
+    - name: require-kill-switch-probe
+      match:
+        any:
+          - resources:
+              kinds: [Deployment, StatefulSet]
+              namespaces: [ai-prod]
+              selector:
+                matchLabels:
+                  ai-act.risk-class: high
+      validate:
+        message: >-
+          Hoogrisicosysteem moet een kill-switch endpoint exposen
+          (annotatie 'ai-act.kill-switch-endpoint') zodat toezichthouders de
+          werking kunnen onderbreken (Art. 14 lid 4 sub e).
+        pattern:
+          metadata:
+            annotations:
+              ai-act.kill-switch-endpoint: "?*"

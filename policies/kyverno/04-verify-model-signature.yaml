@@ -1,0 +1,41 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-model-image-signature
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 15"
+    ai-act.itlusions.nl/control: "C-05a"
+    policies.kyverno.io/description: >-
+      Cyberbeveiliging en integriteit: alleen modellen en inferentie-images die
+      door de ITlusions release-pipeline zijn gesigneerd (cosign) mogen draaien.
+      Beschermt tegen model poisoning en ongeautoriseerde modelwissels.
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: check-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      verifyImages:
+        - imageReferences:
+            - "registry.itlusions.nl/models/*"
+            - "registry.itlusions.nl/ai/*"
+          mutateDigest: true
+          required: true
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    # Vervang door de publieke cosign-sleutel van de release-pipeline.
+                    # Roteer via sealed-secret; houd oude sleutel tijdelijk als tweede entry.
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      REPLACE_WITH_ITLUSIONS_COSIGN_PUBLIC_KEY
+                      -----END PUBLIC KEY-----
+                    rekor:
+                      url: https://rekor.sigstore.dev

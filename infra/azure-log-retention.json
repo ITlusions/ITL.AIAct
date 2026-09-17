@@ -1,0 +1,25 @@
+{
+  "_comment": "Art. 12 lid 3 — automatisch gegenereerde logs bewaren gedurende de gedocumenteerde periode (hier 7 jaar / 2555 dagen). Toepassen op het storage account met de AI-audit-container.",
+  "rules": [
+    {
+      "name": "ai-audit-log-retention",
+      "enabled": true,
+      "type": "Lifecycle",
+      "definition": {
+        "actions": {
+          "baseBlob": {
+            "tierToCool": { "daysAfterModificationGreaterThan": 30 },
+            "tierToArchive": { "daysAfterModificationGreaterThan": 180 },
+            "delete": { "daysAfterModificationGreaterThan": 2555 }
+          }
+        },
+        "filters": {
+          "blobTypes": ["blockBlob"],
+          "blobIndexMatch": [
+            { "name": "log-type", "op": "==", "value": "ai-inference-audit" }
+          ]
+        }
+      }
+    }
+  ]
+}

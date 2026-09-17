@@ -1,0 +1,12 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.rego text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.csv text eol=crlf
+
+# Shell- en python-scripts moeten executable blijven, ook bij een
+# Windows-checkout (anders faalt de CI-gate met exit 126).
+ci/*.sh text eol=lf
+ci/*.py text eol=lf

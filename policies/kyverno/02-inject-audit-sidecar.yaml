@@ -1,0 +1,58 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: inject-ai-audit-sidecar
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 12"
+    ai-act.itlusions.nl/control: "C-03"
+    policies.kyverno.io/description: >-
+      Automatische registratie van gebeurtenissen (logs) gedurende de levensduur
+      van het systeem. De sidecar schrijft hash-chained audit events naar de
+      centrale store; de workload zelf hoeft dit niet te implementeren.
+spec:
+  rules:
+    - name: add-audit-sidecar
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.labels.\"ai-act.risk-class\" || '' }}"
+            operator: AnyIn
+            value: [high, limited]
+      mutate:
+        patchStrategicMerge:
+          spec:
+            containers:
+              - name: audit-logger
+                image: registry.itlusions.nl/audit-sidecar:v1.4.0
+                imagePullPolicy: IfNotPresent
+                securityContext:
+                  runAsNonRoot: true
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop: [ALL]
+                resources:
+                  requests: { cpu: 50m, memory: 64Mi }
+                  limits: { cpu: 200m, memory: 256Mi }
+                env:
+                  - name: AI_ACT_SYSTEM_ID
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.labels['ai-act.system-id']
+                  - name: AI_ACT_RISK_CLASS
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.labels['ai-act.risk-class']
+                  - name: SPIFFE_ID
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.annotations['spiffe.io/spiffe-id']
+                  - name: AUDIT_SINK
+                    value: "https://audit.itlusions.nl/v1/ai-inference"

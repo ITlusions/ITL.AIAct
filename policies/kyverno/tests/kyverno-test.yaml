@@ -1,0 +1,43 @@
+# Draai met: kyverno test policies/kyverno/tests
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ai-act-policy-tests
+policies:
+  - ../01-require-risk-class-label.yaml
+  - ../03-require-human-approval-prod.yaml
+  - ../05-require-spiffe-attestation.yaml
+  - ../06-require-transparency-metadata.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: require-ai-act-risk-label
+    rule: check-risk-class-label
+    resources: [amalia-inference-compliant]
+    kind: Deployment
+    result: pass
+  - policy: require-ai-act-risk-label
+    rule: check-risk-class-label
+    resources: [braincell-inference-unlabeled]
+    kind: Deployment
+    result: fail
+  - policy: require-ai-act-risk-label
+    rule: block-unacceptable-risk
+    resources: [forbidden-scoring-system]
+    kind: Deployment
+    result: fail
+  - policy: require-human-approval-prod
+    rule: check-approval-annotation
+    resources: [amalia-inference-compliant]
+    kind: Deployment
+    result: pass
+  - policy: require-human-approval-prod
+    rule: check-approval-annotation
+    resources: [braincell-inference-unlabeled]
+    kind: Deployment
+    result: fail
+  - policy: require-ai-transparency-metadata
+    rule: check-disclosure-annotations
+    resources: [amalia-inference-compliant]
+    kind: Deployment
+    result: pass

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: braincell-inference
+  namespace: ai-prod
+  labels:
+    app: braincell-inference
+    workload-type: ai-inference
+    ai-act.risk-class: limited
+    ai-act.system-id: AIS-002-braincell
+  annotations:
+    ai-act.approved-by: n.weistra@itlusions.nl
+    ai-act.approval-ticket: CHG-2026-0388
+    ai-act.disclosure-url: https://itlusions.nl/ai-transparency/braincell
+    ai-act.human-interaction: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: braincell-inference
+  template:
+    metadata:
+      labels:
+        app: braincell-inference
+        workload-type: ai-inference
+        ai-act.risk-class: limited
+        ai-act.system-id: AIS-002-braincell
+      annotations:
+        spiffe.io/spiffe-id: spiffe://itlusions.nl/ai/braincell/inference
+    spec:
+      containers:
+        - name: inference
+          image: registry.itlusions.nl/models/braincell:v0.9.0
+          ports:
+            - containerPort: 8080
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]

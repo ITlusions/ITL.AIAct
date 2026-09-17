@@ -1,0 +1,73 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-ai-act-risk-label
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 6, 7, Bijlage III"
+    ai-act.itlusions.nl/control: "C-01"
+    policies.kyverno.io/description: >-
+      Elke AI-inferentieworkload moet expliciet geclassificeerd zijn naar
+      risicoklasse volgens de AI Act. Zonder classificatie is niet vast te
+      stellen welk verplichtingenregime (Art. 9-15) van toepassing is.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-risk-class-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      validate:
+        message: >-
+          AI-workload moet label 'ai-act.risk-class' hebben met waarde
+          unacceptable | high | limited | minimal.
+        pattern:
+          metadata:
+            labels:
+              ai-act.risk-class: "unacceptable|high|limited|minimal"
+
+    - name: check-system-id-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      validate:
+        message: >-
+          AI-workload moet label 'ai-act.system-id' hebben dat verwijst naar een
+          entry in het AI-systeemregister (docs/ai-systeemregister.yaml).
+        pattern:
+          metadata:
+            labels:
+              ai-act.system-id: "?*"
+
+    - name: block-unacceptable-risk
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      validate:
+        message: >-
+          AI-praktijk geclassificeerd als 'unacceptable' (Art. 5) mag niet
+          worden gedeployed.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.metadata.labels.\"ai-act.risk-class\" }}"
+                operator: Equals
+                value: unacceptable

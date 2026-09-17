@@ -1,0 +1,19 @@
+# Art. 13 + Art. 50 — transparantie richting eindgebruiker.
+# Kong/Envoy response-transformer die elke AI-respons markeert.
+plugins:
+  - name: response-transformer
+    route: ai-inference
+    config:
+      add:
+        headers:
+          - "X-AI-Generated: true"
+          - "X-AI-Info-URL: https://itlusions.nl/ai-transparency"
+          - "X-AI-System-Id: AIS-001-amalia"
+          - "X-AI-Risk-Class: high"
+  - name: request-transformer
+    route: ai-inference
+    config:
+      add:
+        headers:
+          # Correlatie-id koppelt gateway-log aan de audit-sidecar (Art. 12).
+          - "X-AI-Correlation-Id: $(uuid)"

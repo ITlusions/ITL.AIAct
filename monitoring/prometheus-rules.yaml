@@ -1,0 +1,60 @@
+# Art. 15 + Art. 17/72 — post-market monitoring en nauwkeurigheidsbewaking.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-act-monitoring
+  namespace: ai-prod
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: ai-act-monitoring
+      rules:
+        - alert: ModelOutputDriftDetected
+          expr: abs(ai_model_output_distribution_shift) > 0.15
+          for: 10m
+          labels:
+            severity: high
+            compliance: ai-act-art72
+          annotations:
+            summary: "Mogelijke model drift op {{ $labels.ai_system_id }} — menselijke review vereist"
+            runbook_url: https://itlusions.nl/runbooks/ai-act-drift
+
+        - alert: ModelAccuracyBelowThreshold
+          expr: ai_model_rolling_accuracy < 0.90
+          for: 30m
+          labels:
+            severity: critical
+            compliance: ai-act-art15
+          annotations:
+            summary: "Nauwkeurigheid onder de gedocumenteerde drempel — overweeg kill-switch"
+            runbook_url: https://itlusions.nl/runbooks/ai-act-kill-switch
+
+        - alert: AIAuditLoggingStalled
+          expr: rate(ai_audit_events_written_total[15m]) == 0
+          for: 15m
+          labels:
+            severity: critical
+            compliance: ai-act-art12
+          annotations:
+            summary: "Geen audit events meer geschreven — logging (Art. 12) is onderbroken"
+
+        - alert: HumanOverrideRateSpike
+          expr: |
+            rate(ai_human_override_total[1h])
+              / clamp_min(rate(ai_inference_total[1h]), 1) > 0.20
+          for: 1h
+          labels:
+            severity: warning
+            compliance: ai-act-art14
+          annotations:
+            summary: "Meer dan 20% van de outputs wordt door mensen overruled — herbeoordeel het systeem"
+
+        - alert: SeriousIncidentReportingWindow
+          expr: ai_act_unreported_serious_incidents > 0
+          for: 5m
+          labels:
+            severity: critical
+            compliance: ai-act-art73
+          annotations:
+            summary: "Ernstig incident nog niet gemeld — meldtermijn Art. 73 (15 dagen) loopt"

@@ -1,0 +1,41 @@
+# AI-systeemregister — bron voor OPA (data.ai_registry) en voor de controlmatrix.
+# Iedere AI-workload in het cluster MOET hier een entry hebben (control C-01).
+# Laad in CI met:  opa eval --data docs/ai-systeemregister.yaml ...
+systems:
+  - id: AIS-001-amalia
+    name: Amalia
+    description: Assistent die klantdossiers samenvat en vervolgacties voorstelt.
+    rol: aanbieder            # aanbieder | gebruiksverantwoordelijke | importeur | distributeur
+    risk_class: high          # unacceptable | high | limited | minimal
+    grondslag_classificatie: >-
+      Bijlage III punt 5 (toegang tot essentiële diensten) — voorlopige
+      classificatie, definitief vast te stellen bij DPIA/FRIA.
+    human_interaction: true
+    owner: compliance@itlusions.nl
+    technical_owner: n.weistra@itlusions.nl
+    namespace: ai-prod
+    registry_image: registry.itlusions.nl/models/amalia
+    spiffe_id: spiffe://itlusions.nl/ai/amalia/inference
+    disclosure_url: https://itlusions.nl/ai-transparency/amalia
+    kill_switch_endpoint: https://amalia.itlusions.nl/admin/halt
+    log_retention_days: 2555
+    status: in-productie
+
+  - id: AIS-002-braincell
+    name: BrainCell
+    description: Interne kennis- en cachelaag met LLM-samenvattingen.
+    rol: gebruiksverantwoordelijke
+    risk_class: limited
+    grondslag_classificatie: >-
+      Geen Bijlage III-toepassing; wel Art. 50 transparantieplicht omdat het
+      systeem gegenereerde content aan mensen toont.
+    human_interaction: true
+    owner: n.weistra@itlusions.nl
+    technical_owner: n.weistra@itlusions.nl
+    namespace: ai-prod
+    registry_image: registry.itlusions.nl/models/braincell
+    spiffe_id: spiffe://itlusions.nl/ai/braincell/inference
+    disclosure_url: https://itlusions.nl/ai-transparency/braincell
+    kill_switch_endpoint: null
+    log_retention_days: 365
+    status: in-productie

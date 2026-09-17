@@ -1,0 +1,36 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-ai-transparency-metadata
+  annotations:
+    ai-act.itlusions.nl/article: "Art. 13, Art. 50"
+    ai-act.itlusions.nl/control: "C-07"
+    policies.kyverno.io/description: >-
+      Systemen die met natuurlijke personen interacteren of content genereren
+      moeten dat kenbaar maken. De annotaties voeden de gateway-plugin die de
+      X-AI-Generated / X-AI-Info-URL headers zet.
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: check-disclosure-annotations
+      match:
+        any:
+          - resources:
+              kinds: [Deployment, StatefulSet]
+              selector:
+                matchLabels:
+                  workload-type: ai-inference
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.labels.\"ai-act.risk-class\" || '' }}"
+            operator: AnyIn
+            value: [high, limited]
+      validate:
+        message: >-
+          AI-systeem met eindgebruikersinteractie moet annotaties
+          'ai-act.disclosure-url' en 'ai-act.human-interaction' (true|false) hebben.
+        pattern:
+          metadata:
+            annotations:
+              ai-act.disclosure-url: "https://*"
+              ai-act.human-interaction: "true|false"
